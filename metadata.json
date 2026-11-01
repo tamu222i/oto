@@ -1,0 +1,7 @@
+{
+  "name": "音フェチタワー - ASMR Sensory Tower",
+  "description": "バタースクイーズ、パキパキ、プチプチ、スライムなど極上のASMR音フェチ触感を味わいながら天空を目指すタワーゲーム。タブレット対応・Web Audio立体音響。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
