@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-11-01
+### Fixed
+- **GitHub Actions ロックファイル未検出エラーの解消**
+  - GitHub Actions の `actions/setup-node` (`cache: 'npm'`) および `npm ci` で要求される `package-lock.json` を生成しリポジトリにコミット。
+  - Vite 8 との esbuild バージョン不整合 (`esbuild@^0.28.0`) を解決し、クリーンな依存性解決を保証。
+
 ## [1.1.0] - 2026-11-01
 ### Added
 - **GitHub Pages (github.io) デプロイ対応**
