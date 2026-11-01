@@ -87,3 +87,26 @@ Zodを用いた厳格なスキーマ定義により、実行時バリデーシ�
   - 階層ごとに幻想的で美しいカラースキーム（パステルバターイエロー、ミントスライム、クリスタルアイス、キャンディピンク）
 - **立体音響（バイノーラル・パン）**:
   - タッチした画面のX座標（左〜右）に応じてリアルタイムに左右のステレオパンを適用。ヘッドホン装着時にまるで耳元で触っているかのような臨場感を実現。
+
+---
+
+## 5. GitHub Pages (github.io) デプロイ戦略
+
+### 5.1 相対パス構成 (Relative Base Path)
+- `vite.config.ts` で `base: './'` を指定。
+- GitHub Pagesのリポジトリ名ルート (`https://<user>.github.io/<repo-name>/`) 配下でも、静的アセット (`./assets/*.js`, `./assets/*.css`) が正しく解決されます。
+
+### 5.2 GitHub Actions ワークフロー (`.github/workflows/deploy.yml`)
+- `main` ブランチへのプッシュ時に自動起動。
+- CIステップ:
+  1. `actions/checkout@v4` でコード取得
+  2. `actions/setup-node@v4` で Node.js 20 環境構築
+  3. `npm ci` で依存関係インストール
+  4. `npm test` でBDDテストスイート全件実行
+  5. `npm run build` で本番用 `dist/` ディレクトリ生成
+  6. `actions/deploy-pages@v4` で GitHub Pages へのゼロコンフィグ自動公開
+
+### 5.3 CLIからのデプロイ (gh-pages)
+- `package.json` に `"deploy": "gh-pages -d dist"` を設定済み。
+- リモートリポジトリ登録後、`npm run deploy` 一発で `gh-pages` ブランチにビルド成果物をプッシュして公開可能。
+

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-11-01
+### Added
+- **GitHub Pages (github.io) デプロイ対応**
+  - `vite.config.ts` に `base: './'` を指定し、GitHub Pagesの任意のリポジトリ名パス（`/<repo-name>/`）でもアセットが404にならず正常にロードされる相対パス構成を実装。
+  - GitHub Actions ワークフロー (`.github/workflows/deploy.yml`) を作成:
+    - `main` ブランチへのプッシュまたは手動実行 (`workflow_dispatch`) で、自動的に依存関係インストール、BDDテスト実行、本番バンドルビルド、GitHub Pagesへの公開を完結。
+  - `package.json` に `predeploy` および `deploy` (`gh-pages -d dist`) スクリプトを追加。
+  - ローカルGitリポジトリを初期化し、初期コミットを作成。
+
 ## [1.0.0] - 2026-11-01
 ### Added
 - **スキーマ駆動アーキテクチャ (Schema-Driven Architecture)**
