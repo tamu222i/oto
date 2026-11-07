@@ -9,14 +9,46 @@ import { z } from 'zod';
  * 触感種別スキーマ
  */
 export const SensoryTypeSchema = z.enum([
-  'bubble_wrap',    // プチプチくん
-  'butter_squeeze', // バタースクイーズ
-  'crunchy_squeeze',// パキパキスクイーズ
-  'slime_poke',     // スライムポーク＆ストレッチ
-  'kinetic_sand',   // キネティックサンド
-  'soap_carving',   // ソープカービング
+  'bubble_wrap',          // 1F: プチプチくん
+  'butter_squeeze',       // 2F: バタースクイーズ
+  'crunchy_squeeze',      // 3F: パキパキスクイーズ
+  'mechanical_keyboard',  // 4F: コトコト・メカニカルキーボード
+  'honey_keyboard',       // 5F: トロトロ・ハチミツキーボード
+  'slime_poke',           // 6F: スライムポーク＆ストレッチ
+  'freeze_dried_candy',   // 7F: フリーズドライ・パキパキキャンディ
+  'kinetic_sand',         // 8F: キネティックサンド
+  'soap_carving',         // 9F: ソープカービング
+  'celestial_symphony',   // 10F: 天空のASMRシンフォニー
 ]);
 export type SensoryType = z.infer<typeof SensoryTypeSchema>;
+
+/**
+ * キャラクター種別
+ */
+export const CharacterBonusTypeSchema = z.enum([
+  'point_boost',      // 癒やしポイント+25%
+  'combo_grace',      // コンボ持続時間延長
+  'fever_duration',   // フィーバー持続+40%
+  'tingle_charge',    // ゾクゾク度の上昇速度+35%
+  'honey_sweetness',  // キーボード＆ハチミツの癒やし度2倍
+]);
+export type CharacterBonusType = z.infer<typeof CharacterBonusTypeSchema>;
+
+export const CharacterSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  title: z.string(),
+  description: z.string(),
+  avatarColor: z.string(),
+  moodEmoji: z.string(),
+  favoriteSensory: SensoryTypeSchema,
+  bonusType: CharacterBonusTypeSchema,
+  bonusDescription: z.string(),
+  reactionQuotes: z.array(z.string()),
+  feverQuotes: z.array(z.string()),
+  unlockRequiredFloor: z.number().int().default(1),
+});
+export type Character = z.infer<typeof CharacterSchema>;
 
 /**
  * 音響パラメータスキーマ (Web Audio API プロシージャル合成用)
@@ -37,7 +69,7 @@ export type SoundProfile = z.infer<typeof SoundProfileSchema>;
  * 触感フロア設定スキーマ
  */
 export const FloorStageSchema = z.object({
-  floorNumber: z.number().int().min(1).max(10),
+  floorNumber: z.number().int().min(1),
   type: SensoryTypeSchema,
   name: z.string(),
   subtitle: z.string(),
@@ -57,7 +89,7 @@ export type FloorStage = z.infer<typeof FloorStageSchema>;
 export const InteractionEventSchema = z.object({
   id: z.string(),
   sensoryType: SensoryTypeSchema,
-  actionType: z.enum(['pop', 'squish', 'crack', 'poke', 'stretch', 'slice', 'carve']),
+  actionType: z.enum(['pop', 'squish', 'crack', 'poke', 'stretch', 'slice', 'carve', 'type', 'honey_drip']),
   x: z.number().min(0).max(1),       // 正規化座標 0.0 - 1.0 (ステレオパン計算用)
   y: z.number().min(0).max(1),
   intensity: z.number().min(0.1).max(3.0).default(1.0),
@@ -114,5 +146,9 @@ export const PlayerStateSchema = z.object({
   lastInteractionTime: z.number().default(0),
   audioSettings: AudioSettingsSchema.default(DEFAULT_AUDIO_SETTINGS),
   unlockedBadges: z.array(z.string()).default([]),
+  // キャラクター関連
+  selectedCharacterId: z.string().default('punisuke'),
+  characterLevels: z.record(z.string(), z.number()).default({ punisuke: 1 }),
+  characterExp: z.record(z.string(), z.number()).default({ punisuke: 0 }),
 });
 export type PlayerState = z.infer<typeof PlayerStateSchema>;

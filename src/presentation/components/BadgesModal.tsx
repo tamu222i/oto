@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Award, X, Sparkles, Layers, Zap, Flame, Crown } from 'lucide-react';
+import { Award, X, Sparkles, Layers, Zap, Flame, Crown, Keyboard, Droplets } from 'lucide-react';
 import { ALL_BADGES } from '../../domain/entities/Badge.ts';
 
 interface BadgesModalProps {
@@ -32,6 +32,10 @@ export const BadgesModal: React.FC<BadgesModalProps> = ({
         return <Flame className="w-5 h-5 text-orange-400" />;
       case 'Crown':
         return <Crown className="w-5 h-5 text-yellow-300" />;
+      case 'Keyboard':
+        return <Keyboard className="w-5 h-5 text-indigo-400" />;
+      case 'Droplets':
+        return <Droplets className="w-5 h-5 text-amber-400" />;
       default:
         return <Award className="w-5 h-5 text-sky-400" />;
     }

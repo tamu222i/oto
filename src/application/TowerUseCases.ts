@@ -35,12 +35,24 @@ export class TowerUseCases {
     return this.aggregate.getCurrentFloorInfo();
   }
 
+  getSelectedCharacter() {
+    return this.aggregate.getSelectedCharacter();
+  }
+
+  selectCharacter(characterId: string): boolean {
+    const ok = this.aggregate.selectCharacter(characterId);
+    if (ok) {
+      this.repository.save(this.aggregate.getState());
+    }
+    return ok;
+  }
+
   /**
    * 触感アクション実行ユースケース
    */
   interact(
     event: InteractionEvent,
-    audioMeta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean }
+    audioMeta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean; isSpacebar?: boolean }
   ) {
     // 1. ドメイン集約の更新
     const result = this.aggregate.interact(event);

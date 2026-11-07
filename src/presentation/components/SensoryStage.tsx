@@ -4,14 +4,17 @@
  */
 
 import React from 'react';
-import { FloorStage } from '../../domain/schemas/index.ts';
+import { FloorStage, InteractionEvent } from '../../domain/schemas/index.ts';
 import { BubbleWrapStage } from '../stages/BubbleWrapStage.tsx';
 import { ButterSqueezeStage } from '../stages/ButterSqueezeStage.tsx';
 import { CrunchySqueezeStage } from '../stages/CrunchySqueezeStage.tsx';
+import { MechanicalKeyboardStage } from '../stages/MechanicalKeyboardStage.tsx';
+import { HoneyKeyboardStage } from '../stages/HoneyKeyboardStage.tsx';
 import { SlimePokeStage } from '../stages/SlimePokeStage.tsx';
+import { FreezeDriedCandyStage } from '../stages/FreezeDriedCandyStage.tsx';
 import { KineticSandStage } from '../stages/KineticSandStage.tsx';
 import { SoapCarvingStage } from '../stages/SoapCarvingStage.tsx';
-import { Sparkles, ArrowUpCircle } from 'lucide-react';
+import { Sparkles, ArrowUpCircle, Crown } from 'lucide-react';
 
 interface SensoryStageProps {
   currentFloor: FloorStage;
@@ -20,11 +23,11 @@ interface SensoryStageProps {
   onAscend: () => void;
   onInteract: (
     type: FloorStage['type'],
-    actionType: 'pop' | 'squish' | 'crack' | 'poke' | 'stretch' | 'slice' | 'carve',
+    actionType: InteractionEvent['actionType'],
     x: number,
     y: number,
     intensity: number,
-    meta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean }
+    meta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean; isSpacebar?: boolean }
   ) => void;
 }
 
@@ -46,21 +49,45 @@ export const SensoryStage: React.FC<SensoryStageProps> = ({
         return <ButterSqueezeStage floor={currentFloor} onInteract={onInteract} />;
       case 'crunchy_squeeze':
         return <CrunchySqueezeStage floor={currentFloor} onInteract={onInteract} />;
+      case 'mechanical_keyboard':
+        return <MechanicalKeyboardStage floor={currentFloor} onInteract={onInteract} />;
+      case 'honey_keyboard':
+        return <HoneyKeyboardStage floor={currentFloor} onInteract={onInteract} />;
       case 'slime_poke':
         return <SlimePokeStage floor={currentFloor} onInteract={onInteract} />;
+      case 'freeze_dried_candy':
+        return <FreezeDriedCandyStage floor={currentFloor} onInteract={onInteract} />;
       case 'kinetic_sand':
         return <KineticSandStage floor={currentFloor} onInteract={onInteract} />;
       case 'soap_carving':
         return <SoapCarvingStage floor={currentFloor} onInteract={onInteract} />;
+      case 'celestial_symphony':
+        return (
+          <div className="flex flex-col items-center justify-center p-6 text-center max-w-lg mx-auto bg-gradient-to-b from-amber-950/40 via-indigo-950/50 to-slate-900/80 rounded-3xl border-2 border-amber-400/50 shadow-2xl space-y-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/40 animate-pulse">
+              <Crown className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-black text-amber-300">天空のエンドレス・聖域</h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              全10フロア到達おめでとうございます！ここからは天空の無限タワー。タップして幻想的な天上のベルチャイムを奏で、どこまでも高く登り続けよう！
+            </p>
+            <button
+              onClick={(e) => onInteract('celestial_symphony', 'pop', 0.5, 0.5, 1.8)}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 font-black text-sm shadow-xl active:scale-95 transition"
+            >
+              ✨ 天空のASMRハーモニーを響かせる ✨
+            </button>
+          </div>
+        );
       default:
         return <BubbleWrapStage floor={currentFloor} onInteract={onInteract} />;
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-between w-full max-w-4xl mx-auto px-4 py-2 overflow-y-auto">
+    <div className="flex-1 flex flex-col items-center justify-between w-full max-w-4xl mx-auto px-4 py-1.5 overflow-y-auto">
       {/* フロアヘッダー＆プログレス */}
-      <div className="w-full flex flex-col items-center mb-2 space-y-1.5">
+      <div className="w-full flex flex-col items-center mb-1 space-y-1">
         <div className="flex items-center gap-2">
           <h1 className="text-xl sm:text-2xl font-black text-slate-100 tracking-tight">
             {currentFloor.name}
@@ -93,7 +120,7 @@ export const SensoryStage: React.FC<SensoryStageProps> = ({
         {canAscend && (
           <button
             onClick={onAscend}
-            className="mt-1 flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition animate-bounce cursor-pointer"
+            className="mt-0.5 flex items-center gap-2 px-4 py-1.5 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition animate-bounce cursor-pointer"
           >
             <ArrowUpCircle className="w-4 h-4" />
             <span>エレベーター準備完了！次の階層へ昇る</span>
@@ -107,7 +134,7 @@ export const SensoryStage: React.FC<SensoryStageProps> = ({
       </div>
 
       {/* フッター豆知識 */}
-      <div className="w-full max-w-xl text-center py-2 px-3 text-[11px] text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800/80 mb-2">
+      <div className="w-full max-w-xl text-center py-1.5 px-3 text-[11px] text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800/80 my-1">
         <span className="text-sky-400 font-bold mr-1.5">ASMR音フェチの秘密:</span>
         <span>{currentFloor.funFact}</span>
       </div>

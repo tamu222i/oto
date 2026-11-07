@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { PlayerState, PlayerStateSchema, InteractionEvent, AudioSettings } from '../schemas/index.ts';
+import { PlayerState, PlayerStateSchema, InteractionEvent, AudioSettings, FloorStage } from '../schemas/index.ts';
 import { TingleLevel } from '../value-objects/TingleLevel.ts';
 import { TOWER_FLOORS } from '../entities/Floor.ts';
+import { ALL_CHARACTERS } from '../entities/Character.ts';
 
 export class TowerAggregate {
   private state: PlayerState;
@@ -29,6 +30,9 @@ export class TowerAggregate {
         ambientVolume: 0.3,
       },
       unlockedBadges: [],
+      selectedCharacterId: 'punisuke',
+      characterLevels: { punisuke: 1 },
+      characterExp: { punisuke: 0 },
     };
 
     const merged = { ...defaultState, ...initialState };
@@ -39,8 +43,42 @@ export class TowerAggregate {
     return { ...this.state };
   }
 
-  getCurrentFloorInfo() {
-    return TOWER_FLOORS.find(f => f.floorNumber === this.state.currentFloor) || TOWER_FLOORS[0];
+  getSelectedCharacter() {
+    return ALL_CHARACTERS.find((c) => c.id === this.state.selectedCharacterId) || ALL_CHARACTERS[0];
+  }
+
+  selectCharacter(characterId: string): boolean {
+    const char = ALL_CHARACTERS.find((c) => c.id === characterId);
+    if (!char) return false;
+    if (this.state.highestUnlockedFloor < char.unlockRequiredFloor) return false;
+
+    this.state = {
+      ...this.state,
+      selectedCharacterId: characterId,
+    };
+    return true;
+  }
+
+  /**
+   * 現在のフロア情報を取得 (10F以降は無限エターナルタワーとして動的スケール)
+   */
+  getCurrentFloorInfo(): FloorStage {
+    const current = this.state.currentFloor;
+    const baseInfo = TOWER_FLOORS.find((f) => f.floorNumber === current);
+    if (baseInfo) return baseInfo;
+
+    // 10F以上の無限タワー: 既存フロアのバリエーションをベースに動的生成
+    const cycleIdx = (current - 1) % TOWER_FLOORS.length;
+    const template = TOWER_FLOORS[cycleIdx];
+    const loop = Math.floor((current - 1) / TOWER_FLOORS.length);
+
+    return {
+      ...template,
+      floorNumber: current,
+      name: `${current}F: 天空の${template.name.split(':')[1]?.trim() || template.name}`,
+      subtitle: `Infinity Tower Loop ${loop + 1}`,
+      targetPoints: Math.round(template.targetPoints * (1 + loop * 0.8)),
+    };
   }
 
   getCurrentFloorPoints(): number {
@@ -55,7 +93,6 @@ export class TowerAggregate {
 
   canAscendToNextFloor(): boolean {
     const nextFloor = this.state.currentFloor + 1;
-    if (nextFloor > TOWER_FLOORS.length) return false;
     return this.state.highestUnlockedFloor >= nextFloor || this.isCurrentFloorTargetReached();
   }
 
@@ -69,21 +106,26 @@ export class TowerAggregate {
     floorTargetReached: boolean;
     unlockedNewFloor: boolean;
     newBadges: string[];
+    characterQuote?: string;
+    charLevelUp?: boolean;
   } {
     const now = Date.now();
     const timeSinceLast = now - this.state.lastInteractionTime;
+    const character = this.getSelectedCharacter();
 
-    // コンボ計算 (2.5秒以内のタップでコンボ継続)
+    // コンボ受付時間 (キャラクター特性: combo_grace の場合 4.0秒、通常は 2.5秒)
+    const comboGraceWindow = character.bonusType === 'combo_grace' ? 4000 : 2500;
     let combo = this.state.comboCount;
-    if (timeSinceLast < 2500) {
+    if (timeSinceLast < comboGraceWindow) {
       combo += 1;
     } else {
       combo = 1;
     }
 
-    // ゾクゾク度 (Tingle) 計算
+    // ゾクゾク度 (Tingle) 計算 (キャラクター特性: tingle_charge の場合 +35%)
+    const tingleChargeMultiplier = character.bonusType === 'tingle_charge' ? 1.35 : 1.0;
     const tingle = new TingleLevel(this.state.tingleScore);
-    const tingleBoost = Math.min(8, (2 + combo * 0.4) * event.intensity);
+    const tingleBoost = Math.min(8, (2 + combo * 0.4) * event.intensity * tingleChargeMultiplier);
     const updatedTingle = tingle.add(tingleBoost);
 
     let isFever = this.state.isFeverMode;
@@ -97,9 +139,20 @@ export class TowerAggregate {
     const tingleMultiplier = updatedTingle.getMultiplier();
     const comboMultiplier = 1 + Math.min(2.0, combo * 0.05);
 
-    // 基礎点 × 強度 × ゾクゾク倍率 × コンボ倍率
+    // キャラクターパッシブ倍率
+    let charBonusMultiplier = 1.0;
+    if (character.bonusType === 'point_boost') {
+      charBonusMultiplier = 1.25;
+    } else if (
+      character.bonusType === 'honey_sweetness' &&
+      (event.sensoryType === 'honey_keyboard' || event.sensoryType === 'mechanical_keyboard' || event.sensoryType === 'butter_squeeze')
+    ) {
+      charBonusMultiplier = 2.0;
+    }
+
+    // 基礎点 × 強度 × ゾクゾク倍率 × コンボ倍率 × キャラ補正
     const basePts = 5;
-    const pointsEarned = Math.round(basePts * event.intensity * tingleMultiplier * comboMultiplier);
+    const pointsEarned = Math.round(basePts * event.intensity * tingleMultiplier * comboMultiplier * charBonusMultiplier);
 
     // フロアポイント更新
     const floorKey = String(this.state.currentFloor);
@@ -117,10 +170,25 @@ export class TowerAggregate {
     const currentFloorInfo = this.getCurrentFloorInfo();
     if (currentFloorPts >= currentFloorInfo.targetPoints) {
       const nextFloor = this.state.currentFloor + 1;
-      if (nextFloor <= TOWER_FLOORS.length && highestUnlocked < nextFloor) {
+      if (highestUnlocked < nextFloor) {
         highestUnlocked = nextFloor;
         unlockedNewFloor = true;
       }
+    }
+
+    // キャラクター経験値とレベルアップ
+    const charId = character.id;
+    const currentExp = (this.state.characterExp[charId] || 0) + pointsEarned;
+    const currentLvl = this.state.characterLevels[charId] || 1;
+    const expToNextLvl = currentLvl * 200;
+    let charLevelUp = false;
+    let newLvl = currentLvl;
+    let newExp = currentExp;
+
+    if (currentExp >= expToNextLvl) {
+      newLvl = currentLvl + 1;
+      newExp = currentExp - expToNextLvl;
+      charLevelUp = true;
     }
 
     // バッジ解放判定
@@ -135,8 +203,19 @@ export class TowerAggregate {
     checkBadge('butter_master', event.sensoryType === 'butter_squeeze' && currentFloorPts >= 100);
     checkBadge('crackle_king', combo >= 10);
     checkBadge('tingle_fever', feverJustActivated || isFever);
+    checkBadge('keyboard_artisan', event.sensoryType === 'mechanical_keyboard' && combo >= 15);
+    checkBadge('honey_lover', event.sensoryType === 'honey_keyboard' && currentFloorPts >= 300);
     checkBadge('tower_climber_3f', highestUnlocked >= 3);
-    checkBadge('tower_conqueror', highestUnlocked >= 6 && currentFloorPts >= (TOWER_FLOORS[5]?.targetPoints || 1400));
+    checkBadge('tower_climber_5f', highestUnlocked >= 5);
+    checkBadge('tower_climber_10f', highestUnlocked >= 10);
+
+    // キャラクターのセリフ選出
+    let characterQuote = '';
+    if (isFever) {
+      characterQuote = character.feverQuotes[Math.floor(Math.random() * character.feverQuotes.length)];
+    } else if (combo % 5 === 0) {
+      characterQuote = character.reactionQuotes[Math.floor(Math.random() * character.reactionQuotes.length)];
+    }
 
     this.state = {
       ...this.state,
@@ -148,6 +227,8 @@ export class TowerAggregate {
       highestUnlockedFloor: highestUnlocked,
       lastInteractionTime: now,
       unlockedBadges: [...this.state.unlockedBadges, ...newBadges],
+      characterExp: { ...this.state.characterExp, [charId]: newExp },
+      characterLevels: { ...this.state.characterLevels, [charId]: newLvl },
     };
 
     return {
@@ -157,6 +238,8 @@ export class TowerAggregate {
       floorTargetReached: currentFloorPts >= currentFloorInfo.targetPoints,
       unlockedNewFloor,
       newBadges,
+      characterQuote,
+      charLevelUp,
     };
   }
 
@@ -166,7 +249,6 @@ export class TowerAggregate {
   ascend(): boolean {
     if (!this.canAscendToNextFloor()) return false;
     const nextFloor = this.state.currentFloor + 1;
-    if (nextFloor > TOWER_FLOORS.length) return false;
 
     this.state = {
       ...this.state,
@@ -199,15 +281,18 @@ export class TowerAggregate {
   tick(elapsedMs: number): void {
     const now = Date.now();
     const idleTime = now - this.state.lastInteractionTime;
+    const character = this.getSelectedCharacter();
 
     if (idleTime > 2000) {
-      if (this.state.comboCount > 0 && idleTime > 3000) {
+      const comboGrace = character.bonusType === 'combo_grace' ? 4000 : 3000;
+      if (this.state.comboCount > 0 && idleTime > comboGrace) {
         this.state = { ...this.state, comboCount: 0 };
       }
 
       if (this.state.isFeverMode) {
-        // フィーバーモードは時間経過で解除
-        const remainingTingle = Math.max(0, this.state.tingleScore - (elapsedMs / 1000) * 15);
+        // キャラクター特性: fever_duration の場合は減衰が緩やか
+        const decayRate = character.bonusType === 'fever_duration' ? 8 : 15;
+        const remainingTingle = Math.max(0, this.state.tingleScore - (elapsedMs / 1000) * decayRate);
         if (remainingTingle <= 0) {
           this.state = { ...this.state, tingleScore: 0, isFeverMode: false };
         } else {
@@ -243,6 +328,9 @@ export class TowerAggregate {
       lastInteractionTime: Date.now(),
       audioSettings: this.state.audioSettings,
       unlockedBadges: [],
+      selectedCharacterId: 'punisuke',
+      characterLevels: { punisuke: 1 },
+      characterExp: { punisuke: 0 },
     };
   }
 }

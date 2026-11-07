@@ -12,12 +12,16 @@ import { AudioSettingsModal } from './presentation/components/AudioSettingsModal
 import { BddTestRunnerModal } from './presentation/components/BddTestRunnerModal.tsx';
 import { FloorCompletedModal } from './presentation/components/FloorCompletedModal.tsx';
 import { BadgesModal } from './presentation/components/BadgesModal.tsx';
+import { CharacterCompanion } from './presentation/components/CharacterCompanion.tsx';
 import { Headphones, Sparkles, Volume2 } from 'lucide-react';
 
 export default function App() {
   const {
     state,
     currentFloorInfo,
+    selectedCharacter,
+    recentCharacterQuote,
+    selectCharacter,
     triggerSensory,
     ascend,
     selectFloor,
@@ -62,9 +66,9 @@ export default function App() {
             音フェチタワー - ASMR Sensory Tower
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 max-w-md mb-6 leading-relaxed">
-            バタースクイーズ、パキパキ、プチプチ、スライム...
+            キーボード、ハチミツキーボード、パキパキスクイーズ...
             <br />
-            極上の触感と立体音響を味わいながらタワーをのぼろう。
+            音フェチなかまと一緒に極上の触感を味わいながらタワーを登ろう！
           </p>
 
           <div className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-sky-400 to-indigo-500 text-slate-950 font-black text-sm shadow-xl hover:scale-105 active:scale-95 transition">
@@ -82,6 +86,15 @@ export default function App() {
         onOpenBddTests={() => setIsBddTestsOpen(true)}
         onOpenElevator={() => setIsElevatorOpen(true)}
         onOpenBadges={() => setIsBadgesOpen(true)}
+      />
+
+      {/* 音フェチなかま (キャラクターコンパニオン) */}
+      <CharacterCompanion
+        selectedCharacter={selectedCharacter}
+        state={state}
+        onSelectCharacter={selectCharacter}
+        recentQuote={recentCharacterQuote}
+        isFever={state.isFeverMode}
       />
 
       {/* メイン触感フロアステージ */}

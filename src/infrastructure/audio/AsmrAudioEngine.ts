@@ -387,9 +387,181 @@ export class AsmrAudioEngine {
   }
 
   /**
+   * 4F: コトコト・メカニカルキーボード (Mechanical Keyboard Thock)
+   */
+  public playKeyboardClack(pan: number = 0, intensity: number = 1.0, isSpacebar: boolean = false): void {
+    const ctx = this.initContext();
+    const now = ctx.currentTime;
+    const dest = this.masterGain!;
+
+    const panner = this.createPanner(pan);
+    const nodeTarget = panner || dest;
+    if (panner) panner.connect(dest);
+
+    // 1. ボトムアウト (底打ち) の重厚なThock低域トーン
+    const bottomOsc = ctx.createOscillator();
+    const bottomGain = ctx.createGain();
+    bottomOsc.type = isSpacebar ? 'triangle' : 'sine';
+
+    const baseF = isSpacebar ? 160 + Math.random() * 20 : 260 + Math.random() * 50;
+    bottomOsc.frequency.setValueAtTime(baseF, now);
+    bottomOsc.frequency.exponentialRampToValueAtTime(baseF * 0.45, now + 0.05);
+
+    bottomGain.gain.setValueAtTime(0.55 * intensity, now);
+    bottomGain.gain.exponentialRampToValueAtTime(0.001, now + (isSpacebar ? 0.08 : 0.06));
+
+    bottomOsc.connect(bottomGain);
+    bottomGain.connect(nodeTarget);
+    bottomOsc.start(now);
+    bottomOsc.stop(now + 0.09);
+
+    // 2. キースイッチのスライダー接触・カチャッという高域スナップ
+    if (this.noiseBuffer) {
+      const snapSrc = ctx.createBufferSource();
+      snapSrc.buffer = this.noiseBuffer;
+      const snapFilter = ctx.createBiquadFilter();
+      snapFilter.type = 'bandpass';
+      snapFilter.frequency.setValueAtTime(isSpacebar ? 1800 : 2800 + Math.random() * 600, now);
+      snapFilter.Q.setValueAtTime(6, now);
+
+      const snapGain = ctx.createGain();
+      snapGain.gain.setValueAtTime(0.4 * intensity, now);
+      snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+
+      snapSrc.connect(snapFilter);
+      snapFilter.connect(snapGain);
+      snapGain.connect(nodeTarget);
+
+      snapSrc.start(now);
+      snapSrc.stop(now + 0.05);
+    }
+  }
+
+  /**
+   * 5F: トロトロ・ハチミツキーボード (Honey Keyboard Viscous Squelch)
+   */
+  public playHoneySquelch(pan: number = 0, intensity: number = 1.0): void {
+    const ctx = this.initContext();
+    const now = ctx.currentTime;
+    const dest = this.masterGain!;
+
+    const panner = this.createPanner(pan);
+    const nodeTarget = panner || dest;
+    if (panner) panner.connect(dest);
+
+    // 1. 濃厚なハチミツに沈み込む「ぬちゃっ・じゅぽっ」という粘性スウィープ
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'sine';
+
+    const startF = 340 + Math.random() * 80;
+    const endF = 110 + Math.random() * 30;
+    osc.frequency.setValueAtTime(startF, now);
+    osc.frequency.exponentialRampToValueAtTime(endF, now + 0.14);
+
+    oscGain.gain.setValueAtTime(0.6 * intensity, now);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    osc.connect(oscGain);
+    oscGain.connect(nodeTarget);
+    osc.start(now);
+    osc.stop(now + 0.2);
+
+    // 2. とろ〜りハチミツの気泡破裂 (ウェットノイズ)
+    if (this.noiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = this.noiseBuffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1200, now);
+      filter.frequency.exponentialRampToValueAtTime(450, now + 0.12);
+      filter.Q.setValueAtTime(7, now);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.45 * intensity, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(nodeTarget);
+
+      noise.start(now);
+      noise.stop(now + 0.16);
+    }
+  }
+
+  /**
+   * 7F: フリーズドライ・パキパキキャンディ (Ultra-Crisp Candy Crunch)
+   */
+  public playFreezeDriedCandy(pan: number = 0, intensity: number = 1.0): void {
+    const ctx = this.initContext();
+    const now = ctx.currentTime;
+    const dest = this.masterGain!;
+
+    const panner = this.createPanner(pan);
+    const nodeTarget = panner || dest;
+    if (panner) panner.connect(dest);
+
+    // エアリーな超微細破裂の多重連続 (サクサク・パキッ)
+    for (let i = 0; i < 5; i++) {
+      const offset = i * (0.01 + Math.random() * 0.012);
+      const t = now + offset;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(2200 + Math.random() * 1800, t);
+      osc.frequency.exponentialRampToValueAtTime(600, t + 0.02);
+
+      gain.gain.setValueAtTime(0.4 * intensity, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+
+      osc.connect(gain);
+      gain.connect(nodeTarget);
+      osc.start(t);
+      osc.stop(t + 0.035);
+    }
+  }
+
+  /**
+   * 10F: 天空のASMRシンフォニー (Celestial Harmonics)
+   */
+  public playCelestialSymphony(pan: number = 0, intensity: number = 1.0): void {
+    const ctx = this.initContext();
+    const now = ctx.currentTime;
+    const dest = this.masterGain!;
+
+    const panner = this.createPanner(pan);
+    const nodeTarget = panner || dest;
+    if (panner) panner.connect(dest);
+
+    // 幻想的なベルチャイム
+    const notes = [659.25, 880, 1046.5, 1318.51];
+    const pitch = notes[Math.floor(Math.random() * notes.length)];
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(pitch, now);
+
+    gain.gain.setValueAtTime(0.45 * intensity, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    osc.connect(gain);
+    gain.connect(nodeTarget);
+    osc.start(now);
+    osc.stop(now + 0.45);
+  }
+
+  /**
    * 触感種別に応じたサウンド再生ディスパッチャ
    */
-  public playSensorySound(type: SensoryType, pan: number, intensity: number = 1.0, meta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean }): void {
+  public playSensorySound(
+    type: SensoryType,
+    pan: number,
+    intensity: number = 1.0,
+    meta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean; isSpacebar?: boolean }
+  ): void {
     switch (type) {
       case 'bubble_wrap':
         this.playBubblePop(pan, meta?.isGolden, intensity);
@@ -400,14 +572,26 @@ export class AsmrAudioEngine {
       case 'crunchy_squeeze':
         this.playCrunchyCrack(pan, intensity, 5);
         break;
+      case 'mechanical_keyboard':
+        this.playKeyboardClack(pan, intensity, meta?.isSpacebar);
+        break;
+      case 'honey_keyboard':
+        this.playHoneySquelch(pan, intensity);
+        break;
       case 'slime_poke':
         this.playSlimePoke(pan, intensity, meta?.isStretch);
+        break;
+      case 'freeze_dried_candy':
+        this.playFreezeDriedCandy(pan, intensity);
         break;
       case 'kinetic_sand':
         this.playKineticSlice(pan, intensity);
         break;
       case 'soap_carving':
         this.playSoapCarve(pan, intensity);
+        break;
+      case 'celestial_symphony':
+        this.playCelestialSymphony(pan, intensity);
         break;
     }
   }

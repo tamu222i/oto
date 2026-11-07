@@ -23,6 +23,18 @@ export class HapticService {
 
     try {
       switch (type) {
+        case 'mechanical_keyboard':
+          // カチッとした短いマイクロクリック (10ms)
+          navigator.vibrate(10);
+          break;
+        case 'honey_keyboard':
+          // ねっとり粘性のあるディープバイブレーション ([15, 20])
+          navigator.vibrate([15, 20]);
+          break;
+        case 'freeze_dried_candy':
+          // パキパキ砕けるクラッシュ振動 ([8, 12, 8])
+          navigator.vibrate([8, 12, 8]);
+          break;
         case 'bubble_wrap':
           // 短い鋭い破裂 (15ms)
           navigator.vibrate(15);

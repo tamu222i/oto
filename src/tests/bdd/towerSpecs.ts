@@ -265,4 +265,111 @@ export const TOWER_BDD_FEATURES: BddFeature[] = [
       },
     ],
   },
+  {
+    id: 'feature_character_companion',
+    title: 'フィーチャー 6: 音フェチなかま（キャラクター）の成長とパッシブ効果',
+    userStory: 'プレイヤーとして、好きな音フェチキャラを相棒にしてタワーを登り、キャラの特技で癒やし度を高めたい',
+    scenarios: [
+      {
+        id: 'scenario_character_passives',
+        name: 'ぷに助のポイントボーナス適用と経験値蓄積',
+        description: 'ぷに助を選択時は癒やしポイントに+25%ボーナスが加算され、キャラ経験値が蓄積される',
+        steps: [
+          {
+            type: 'GIVEN',
+            description: '初期キャラ「ぷに助」が選択されている',
+            action: () => {
+              const tower = new TowerAggregate();
+              expect(tower.getSelectedCharacter().id).toBe('punisuke');
+            },
+          },
+          {
+            type: 'WHEN',
+            description: '触感アクションを行うとボーナス補正が計算される',
+            action: () => {
+              const tower = new TowerAggregate();
+              const result = tower.interact({
+                id: 'evt-char-1',
+                sensoryType: 'bubble_wrap',
+                actionType: 'pop',
+                x: 0.5,
+                y: 0.5,
+                intensity: 1.0,
+                combo: 1,
+                timestamp: Date.now(),
+              });
+              expect(result.pointsEarned).toBeGreaterThan(5);
+              expect(tower.getState().characterExp['punisuke']).toBeGreaterThan(0);
+            },
+          },
+          {
+            type: 'THEN',
+            description: 'フロア解放に応じて新キャラ（キーボ等）が選択可能になる',
+            action: () => {
+              const tower = new TowerAggregate({ highestUnlockedFloor: 4 });
+              const success = tower.selectCharacter('keybo');
+              expect(success).toBeTruthy();
+              expect(tower.getSelectedCharacter().id).toBe('keybo');
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'feature_keyboard_and_honey',
+    title: 'フィーチャー 7: メカニカルキーボード ＆ ハチミツキーボード',
+    userStory: 'プレイヤーとして、コトコト鳴るメカニカルキーボードやトロトロのハチミツキーボードで長時間タワーを登りたい',
+    scenarios: [
+      {
+        id: 'scenario_keyboard_thock',
+        name: 'メカニカルキーボードのタイピング打鍵音と癒やし獲得',
+        description: '4Fのメカニカルキーボードでタイプアクションを行うと打鍵ポイントが加算される',
+        steps: [
+          {
+            type: 'GIVEN',
+            description: '4階（メカニカルキーボード）に到達している',
+            action: () => {
+              const tower = new TowerAggregate({ currentFloor: 4, highestUnlockedFloor: 4 });
+              expect(tower.getCurrentFloorInfo().type).toBe('mechanical_keyboard');
+            },
+          },
+          {
+            type: 'WHEN',
+            description: 'スペースバーで重厚なThock打鍵を行う',
+            action: () => {
+              const tower = new TowerAggregate({ currentFloor: 4, highestUnlockedFloor: 4 });
+              const result = tower.interact({
+                id: 'evt-thock-1',
+                sensoryType: 'mechanical_keyboard',
+                actionType: 'type',
+                x: 0.5,
+                y: 0.8,
+                intensity: 1.4,
+                combo: 1,
+                timestamp: Date.now(),
+              });
+              expect(result.pointsEarned).toBeGreaterThan(0);
+            },
+          },
+          {
+            type: 'THEN',
+            description: '5階（トロトロ・ハチミツキーボード）へ昇降が可能になる',
+            action: () => {
+              const tower = new TowerAggregate({
+                currentFloor: 4,
+                highestUnlockedFloor: 4,
+                floorPoints: { '4': 800 },
+              });
+              expect(tower.canAscendToNextFloor()).toBeTruthy();
+              const ascended = tower.ascend();
+              expect(ascended).toBeTruthy();
+              expect(tower.getState().currentFloor).toBe(5);
+              expect(tower.getCurrentFloorInfo().type).toBe('honey_keyboard');
+            },
+          },
+        ],
+      },
+    ],
+  },
 ];

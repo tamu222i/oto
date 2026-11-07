@@ -10,7 +10,7 @@ import { AsmrAudioEngine } from '../../infrastructure/audio/AsmrAudioEngine.ts';
 import { HapticService } from '../../infrastructure/haptics/HapticService.ts';
 import { LocalStorageTowerRepository } from '../../infrastructure/storage/LocalStorageTowerRepository.ts';
 import { TowerUseCases } from '../../application/TowerUseCases.ts';
-import { PlayerState, SensoryType, AudioSettings } from '../../domain/schemas/index.ts';
+import { PlayerState, SensoryType, AudioSettings, InteractionEvent } from '../../domain/schemas/index.ts';
 import { ALL_BADGES } from '../../domain/entities/Badge.ts';
 
 export function useTowerGame() {
@@ -30,6 +30,7 @@ export function useTowerGame() {
   const [celebrationModalOpen, setCelebrationModalOpen] = useState(false);
   const [newlyUnlockedFloor, setNewlyUnlockedFloor] = useState<number | null>(null);
   const [recentBadgeToast, setRecentBadgeToast] = useState<string | null>(null);
+  const [recentCharacterQuote, setRecentCharacterQuote] = useState<string>('');
 
   // 定期的なアイドル減衰タイマー (1秒ごと)
   useEffect(() => {
@@ -46,11 +47,11 @@ export function useTowerGame() {
   const triggerSensory = useCallback(
     (
       type: SensoryType,
-      actionType: 'pop' | 'squish' | 'crack' | 'poke' | 'stretch' | 'slice' | 'carve',
+      actionType: InteractionEvent['actionType'],
       normalizedX: number,
       normalizedY: number,
       intensity: number = 1.0,
-      audioMeta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean }
+      audioMeta?: { isGolden?: boolean; isCut?: boolean; isStretch?: boolean; isSpacebar?: boolean }
     ) => {
       if (!useCasesRef.current) return;
 
@@ -70,6 +71,17 @@ export function useTowerGame() {
 
       const newState = { ...useCasesRef.current.getState() };
       setState(newState);
+
+      if (result.characterQuote) {
+        setRecentCharacterQuote(result.characterQuote);
+      }
+
+      // レベルアップ演出
+      if (result.charLevelUp) {
+        const char = useCasesRef.current.getSelectedCharacter();
+        setRecentBadgeToast(`🎉 ${char.name}の癒やしレベルが上がった！ (Lv.${newState.characterLevels[char.id]})`);
+        setTimeout(() => setRecentBadgeToast(null), 3000);
+      }
 
       // 新しいフロアが解放されたとき
       if (result.unlockedNewFloor) {
@@ -127,6 +139,15 @@ export function useTowerGame() {
     }
   }, []);
 
+  // キャラクター変更
+  const selectCharacter = useCallback((charId: string) => {
+    if (!useCasesRef.current) return;
+    const ok = useCasesRef.current.selectCharacter(charId);
+    if (ok) {
+      setState({ ...useCasesRef.current.getState() });
+    }
+  }, []);
+
   // 設定更新
   const updateSettings = useCallback((settings: Partial<AudioSettings>) => {
     if (!useCasesRef.current) return;
@@ -144,6 +165,9 @@ export function useTowerGame() {
   return {
     state,
     currentFloorInfo: useCasesRef.current!.getCurrentFloorInfo(),
+    selectedCharacter: useCasesRef.current!.getSelectedCharacter(),
+    recentCharacterQuote,
+    selectCharacter,
     triggerSensory,
     ascend,
     selectFloor,
